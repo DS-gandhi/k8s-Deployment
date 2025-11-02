@@ -1,0 +1,32 @@
+version: 0.2
+env:
+  variables:
+    AWS_REGION: ap-south-1
+    ECR_REPO: 779564891510.dkr.ecr.ap-south-1.amazonaws.com
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
+      - docker build -t webapp .
+      - docker tag webapp:latest $ECR_REPO/webapp:latest
+      - docker push $ECR_REPO/webapp:latest
+      - echo Image build and push completed.
+  # build:
+  #   commands:
+  #     - echo Building the Docker image...
+  #     - docker build -t $IMAGE_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION .
+  #     - docker tag $IMAGE_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION $IMAGE_REPO:latest
+  # post_build:
+  #   commands:
+  #     - echo Pushing the Docker image...
+  #     - docker push $IMAGE_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION
+  #     - docker push $IMAGE_REPO:latest
+  #     - echo Updating Kubernetes deployment manifest...
+  #     - cd ../k8s/
+  #     - 'sed -i "s|image: .*|image: $IMAGE_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION|" k8s/deployment.yaml'
+
+# artifacts:
+#   files:
+#     - k8s/deployment.yaml
