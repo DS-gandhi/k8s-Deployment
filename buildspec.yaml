@@ -3,16 +3,32 @@ env:
   variables:
     AWS_REGION: ap-south-1
     ECR_REPO: 779564891510.dkr.ecr.ap-south-1.amazonaws.com
+    CLUSTER_NAME: demo-cluster-1
 
 phases:
   pre_build:
     commands:
       - echo Logging in to ECR...
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 000316900965.dkr.ecr.us-east-1.amazonaws.com
+  build:
+    commands:
+      - echo building the docker image
       - docker build -t webapp .
       - docker tag webapp:latest 000316900965.dkr.ecr.us-east-1.amazonaws.com/webapp:latest
       - docker push 000316900965.dkr.ecr.us-east-1.amazonaws.com/webapp:latest
       - echo Image build and push completed.
+  post_build:
+    commands:
+      - echo Updating Kubernetes deployment...
+      - cd ./k8s
+      - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+      - kubectl get ns webapp || kubectl create namespae webapp
+      - kubectl apply -f k8s-aws.yaml
+      - kubectl get pods -n webapp
+      - kubectl get svc -n webapp
+      - echo Deployment to EKS completed.
+
+
   # build:
   #   commands:
   #     - echo Building the Docker image...
@@ -20,6 +36,7 @@ phases:
   #     - docker tag $IMAGE_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION $IMAGE_REPO:latest
   # post_build:
   #   commands:
+
   #     - echo Pushing the Docker image...
   #     - docker push $IMAGE_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION
   #     - docker push $IMAGE_REPO:latest
@@ -30,3 +47,6 @@ phases:
 # artifacts:
 #   files:
 #     - k8s/deployment.yaml
+  post_build:
+    commands:
+    
